@@ -1,3 +1,5 @@
+import { MINUTE_TO_MS_FACTOR } from "./constants";
+import { EventNotFound, OverlappingEventsError } from "./error";
 import { CalendarEvent } from "./event";
 import { Id, WithId } from "./id";
 import { CalendarEventOptions } from "./options";
@@ -16,8 +18,8 @@ export class Calendar {
             title,
             startDate,
             endDate: new Date(
-                startDate.getTime() + durationMinutes * 60 * 1000
-            ), // TODO
+                startDate.getTime() + durationMinutes * MINUTE_TO_MS_FACTOR
+            ),
         };
         if (!opt?.allowOverlapping) {
             const overlappingEvents = await this.storage.list(
@@ -25,7 +27,7 @@ export class Calendar {
                 event.endDate
             );
             if (overlappingEvents.length > 0) {
-                throw new Error(""); // TODO
+                throw new OverlappingEventsError();
             }
         }
         return this.storage.save(event);
@@ -39,7 +41,7 @@ export class Calendar {
     };
 
     public updateEvent = async (
-        id: Id,
+        eventId: Id,
         startDate: Date,
         durationMinutes: number,
         title: string,
@@ -49,24 +51,31 @@ export class Calendar {
             title,
             startDate,
             endDate: new Date(
-                startDate.getTime() + durationMinutes * 60 * 1000
-            ), // TODO
+                startDate.getTime() + durationMinutes * MINUTE_TO_MS_FACTOR
+            ),
         };
         if (!opt?.allowOverlapping) {
             const overlappingEvents = await this.storage.list(
                 event.startDate,
                 event.endDate
             );
-            if (overlappingEvents.length > 0) {
-                throw new Error(""); // TODO
+            if (overlappingEvents.filter(event => event.id !== eventId).length > 0) {
+                throw new OverlappingEventsError();
             }
         }
-        return this.storage.update(id, event);
+        const updatedEvent = await this.storage.update(eventId, event);
+        if (updatedEvent === null) {
+            throw new EventNotFound(eventId);
+        }
+        return updatedEvent;
     };
 
     public deleteEvent = async (
         eventId: Id
-    ): Promise<boolean> => {
-        return this.storage.delete(eventId);
+    ): Promise<void> => {
+        const deleted = await this.storage.delete(eventId);
+        if (!deleted) {
+            throw new EventNotFound(eventId);
+        }
     };
 }
