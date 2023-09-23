@@ -1,7 +1,13 @@
-import { CalendarEvent, Id, StorageLayer, WithId } from "../../src/lib";
+import {
+    CalendarEvent,
+    EventStorageLayer,
+    Id,
+    StorageLayer,
+    WithId,
+} from "../../src/lib";
 import { v4 as uuid } from "uuid";
 
-export class InMemoryStorage implements StorageLayer {
+export class CalendarEventStorage implements EventStorageLayer<CalendarEvent> {
     private readonly events: Record<Id, WithId<CalendarEvent>> = {};
 
     save = async (event: CalendarEvent): Promise<WithId<CalendarEvent>> => {
@@ -14,7 +20,7 @@ export class InMemoryStorage implements StorageLayer {
         return eventWithId;
     };
 
-    list = async (
+    findOverlappingWithInterval = async (
         startDate: Date,
         endDate: Date
     ): Promise<WithId<CalendarEvent>[]> => {
@@ -27,8 +33,15 @@ export class InMemoryStorage implements StorageLayer {
         );
     };
 
-    findById = async (id: string): Promise<WithId<CalendarEvent>> =>
-        this.events[id];
+    findByCondition = async (
+        condition: Partial<CalendarEvent>
+    ): Promise<WithId<CalendarEvent>[]> => {
+        const filterFn = this.conditionToFilterFn(condition);
+        return Object.values(this.events).filter(filterFn);
+    };
+
+    findById = async (id: string): Promise<WithId<CalendarEvent> | null> =>
+        this.events[id] ?? null;
 
     update = async (
         id: string,
@@ -50,4 +63,15 @@ export class InMemoryStorage implements StorageLayer {
         delete this.events[id];
         return exists;
     };
+
+    private conditionToFilterFn =
+        (condition: Partial<CalendarEvent>) =>
+        (event: WithId<CalendarEvent>): boolean => {
+            for (const key in condition) {
+                if (event[key] !== condition[key]) {
+                    return false;
+                }
+            }
+            return true;
+        };
 }

@@ -1,22 +1,32 @@
+import { Id } from "./id";
 
-export type CalendarEvent = {
+export type BaseCalendarEvent = {
     title: string;
     startDate: Date;
     endDate: Date;
-    // recurrence?: CalendarEventRecurrence;
-}
+};
 
-// export type CalendarEventRecurrence = {
-//     interval: "daily" | "weekly" | "monthly";
-//     limit: LimitByCountRecurrence | LimitByDateRecurrence;
-// };
+export type CalendarEvent = BaseCalendarEvent & {
+    recurringCalendarEventId?: Id;
+};
 
-// export type LimitByCountRecurrence = {
-//     type: "count";
-//     count: number;
-// };
+export type RecurringCalendarEvent = BaseCalendarEvent & {
+    rule: RecurrenceRule;
+};
 
-// export type LimitByDateRecurrence = {
-//     type: "date";
-//     endDate: Date;
-// };
+export type RecurrenceRule = {
+    interval: RecurrenceInterval;
+    limit: LimitByCountRecurrence | LimitByDateRecurrence;
+};
+
+export type RecurrenceInterval = "daily" | "weekly" | "monthly";
+
+export type LimitByCountRecurrence = {
+    type: "count";
+    count: number;
+};
+
+export type LimitByDateRecurrence = {
+    type: "date";
+    endDate: Date;
+};
